@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Kodai FM</title>
+    <meta name="description" content="Listen to AIR Kodaikanal 100.5 FM live on a 1960s valve radio or a 1980s boombox." />
+    <meta name="theme-color" content="#000000" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="js/main.js"></script>
+  </head>
+  <body>
+    <h1 class="sr-only">Kodai FM · AIR Kodaikanal 100.5 MHz</h1>
+
+    <main id="pager">
+      <section class="page vintage" aria-label="1960s valve radio">
+        <div class="stage">
+          <div class="cabinet case">
+            <canvas class="wood fill"></canvas>
+            <div class="header">
+              <div class="titles">
+                <div class="v-title">KODAI FM</div>
+                <div class="v-tagline">AIR Kodaikanal · 100.5 MHz</div>
+              </div>
+              <div class="eye" aria-hidden="true"><canvas></canvas></div>
+            </div>
+            <canvas class="dial" aria-hidden="true"></canvas>
+            <canvas class="grille" aria-hidden="true"></canvas>
+            <div class="controls">
+              <span class="knob-label off" aria-hidden="true">OFF</span>
+              <button class="knob" type="button" aria-label="Play"><canvas></canvas></button>
+              <span class="knob-label on" aria-hidden="true">ON</span>
+            </div>
+            <div class="plaque" aria-live="polite"></div>
+          </div>
+          <div class="feet" aria-hidden="true"><span></span><span></span></div>
+          <div class="shelf" aria-hidden="true"></div>
+        </div>
+      </section>
+
+      <section class="page boombox" aria-label="1980s boombox">
+        <canvas class="backdrop fill" aria-hidden="true"></canvas>
+        <div class="stage">
+          <div class="handle" aria-hidden="true"><canvas class="fill"></canvas></div>
+          <div class="body case">
+            <canvas class="metal fill"></canvas>
+            <div class="brand">
+              <div class="brand-text">
+                <div class="b-title">KODAI FM</div>
+                <div class="b-sub">
+                  <canvas class="stripes" aria-hidden="true"></canvas>
+                  <span>AIR Kodaikanal · 100.5 MHz</span>
+                </div>
+              </div>
+              <div class="onair" aria-hidden="true">
+                <div class="led"><canvas></canvas></div>
+                <span>ON AIR</span>
+              </div>
+            </div>
+            <div class="deck">
+              <div class="keys">
+                <button class="key play" type="button" aria-label="Play">
+                  <canvas class="fill"></canvas>
+                  <span class="key-face" aria-hidden="true">
+                    <svg viewBox="0 0 14 14"><path d="M2.1 0 14 7 2.1 14Z" /></svg>PLAY
+                  </span>
+                </button>
+                <button class="key stop" type="button" aria-label="Pause">
+                  <canvas class="fill"></canvas>
+                  <span class="key-face" aria-hidden="true">
+                    <svg viewBox="0 0 14 14"><rect x="1.4" y="1.4" width="11.2" height="11.2" /></svg>STOP
+                  </span>
+                </button>
+              </div>
+              <div class="vfd">
+                <canvas class="vfd-face fill" aria-hidden="true"></canvas>
+                <canvas class="vfd-meters fill" aria-hidden="true"></canvas>
+                <canvas class="vfd-glass fill" aria-hidden="true"></canvas>
+                <div class="vfd-status" aria-live="polite"></div>
+              </div>
+            </div>
+            <div class="speakers" aria-hidden="true">
+              <canvas class="mesh fill"></canvas>
+              <div class="woofer"><canvas class="frame fill"></canvas><canvas class="cone fill"></canvas></div>
+              <div class="woofer"><canvas class="frame fill"></canvas><canvas class="cone fill"></canvas></div>
+            </div>
+            <div class="badge" aria-hidden="true">SUPER BASS · STEREO SOUND</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="chrome">
+      <nav class="dots" aria-label="Radio style">
+        <button class="dot" type="button" aria-label="1960s valve radio"></button>
+        <button class="dot" type="button" aria-label="1980s boombox"></button>
+      </nav>
+      <p class="disclaimer">Unofficial app · Not affiliated with All India Radio or Prasar Bharati</p>
+    </footer>
+
+    <button class="nav prev" type="button" aria-label="Previous radio style" title="Previous style (←)">
+      <svg viewBox="0 0 24 24"><path d="M15 5 8 12l7 7" /></svg>
+    </button>
+    <button class="nav next" type="button" aria-label="Next radio style" title="Next style (→)">
+      <svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7" /></svg>
+    </button>
+
+    <audio preload="none"></audio>
+  </body>
+</html>

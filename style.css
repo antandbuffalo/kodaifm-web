@@ -1,0 +1,710 @@
+:root {
+  color-scheme: dark;
+  --serif: Georgia, 'Times New Roman', serif;
+  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --brass-light: #f3da9a;
+  --brass: #c9a45c;
+  --brass-dark: #7d5e25;
+  --wood-ink: #3b2a18;
+  --boom-ink: #24282c;
+  /* Canvas lettering scale, read by layer() in js/draw.js; the wide layout raises it. */
+  --canvas-scale: 1;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+canvas {
+  display: block;
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+button:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+/* Pager: one radio style per screen, swiped sideways. */
+#pager {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+#pager::-webkit-scrollbar {
+  display: none;
+}
+
+.page {
+  position: relative;
+  flex: 0 0 100%;
+  height: 100%;
+  overflow: hidden;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.stage {
+  position: relative;
+  box-sizing: border-box;
+  height: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(12px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right))
+    calc(48px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+}
+
+.chrome {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: env(safe-area-inset-bottom);
+  padding: 0 24px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.dots {
+  display: flex;
+  pointer-events: auto;
+}
+
+.dot {
+  width: 16px;
+  height: 20px;
+}
+
+.dot::before {
+  content: '';
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin: auto;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.dot[aria-current='true']::before {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.disclaimer {
+  margin: 0;
+  font: 10px var(--sans);
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+}
+
+/* The radio's case (walnut cabinet, silver body): texture canvas behind, parts stacked on top. */
+.case {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.55), 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+.case > :not(.fill) {
+  position: relative;
+}
+
+/* ---------- 1960s valve radio ---------- */
+
+.vintage {
+  background: radial-gradient(circle 75vmax at 50% 25%, #3a271b, #140d09);
+}
+
+.cabinet {
+  padding: 20px;
+  border-radius: 28px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.v-title {
+  font: 700 32px/1.25 var(--serif);
+  letter-spacing: 4px;
+  background: linear-gradient(var(--brass-light), var(--brass), var(--brass-dark));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1.2px 0.8px rgba(0, 0, 0, 0.6));
+}
+
+.v-tagline {
+  font: 12px/1.35 var(--serif);
+  letter-spacing: 1.5px;
+  color: var(--brass);
+}
+
+.eye {
+  position: relative;
+  flex: none;
+  width: 56px;
+  height: 56px;
+}
+
+.dial {
+  width: 100%;
+  aspect-ratio: 2.3;
+  margin-top: 16px;
+  flex: none;
+}
+
+.grille {
+  width: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+  margin-top: 16px;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  margin-top: 16px;
+}
+
+.knob-label {
+  padding-top: 6px;
+  font: 700 13px/1.3 var(--serif);
+  letter-spacing: 2px;
+  color: var(--brass-dark);
+}
+
+.knob-label.active {
+  color: var(--brass-light);
+}
+
+.knob {
+  position: relative;
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+}
+
+.knob canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.plaque {
+  margin-top: 12px;
+  padding: 6px 24px;
+  border-radius: 4px;
+  background: linear-gradient(var(--brass-light), var(--brass), var(--brass-dark));
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  font: 700 12px/1.3 var(--serif);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--wood-ink);
+}
+
+/* Brass screws with a slot. */
+.plaque::before,
+.plaque::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(var(--wood-ink), var(--wood-ink)) center / 4px 1px no-repeat, var(--brass-dark);
+}
+
+.plaque::after {
+  left: calc(100% - 8px);
+}
+
+.feet {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 40px;
+  display: flex;
+  justify-content: space-between;
+  flex: none;
+}
+
+.feet span {
+  width: 36px;
+  height: 10px;
+  border-radius: 0 0 6px 6px;
+  background: linear-gradient(#3a2112, #000);
+}
+
+/* ---------- 1980s boombox ---------- */
+
+.boombox {
+  background: #12051e;
+}
+
+.handle {
+  position: relative;
+  flex: none;
+  width: 72%;
+  height: 44px;
+}
+
+.body {
+  padding: 16px;
+  border-radius: 24px;
+}
+
+/* On phones the deck dissolves and its parts stack in the body like the Android app. */
+.deck {
+  display: contents;
+}
+
+.keys {
+  order: 1;
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  flex: none;
+}
+
+.key {
+  position: relative;
+  flex: 1;
+  height: 56px;
+  padding-bottom: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.key-face {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 900 14px var(--sans);
+  letter-spacing: 2px;
+  color: var(--boom-ink);
+  will-change: transform;
+}
+
+.key-face svg {
+  width: 14px;
+  height: 14px;
+  fill: var(--boom-ink);
+}
+
+.brand {
+  order: 2;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-top: 14px;
+  flex: none;
+}
+
+.brand-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.b-title {
+  display: inline-block;
+  padding-right: 6px;
+  font: italic 900 30px/1.2 var(--sans);
+  letter-spacing: 1px;
+  background: linear-gradient(#3a3f45, #0b0d0f);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0.8px 0 rgba(255, 255, 255, 0.8));
+}
+
+.b-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: italic 700 11px/1.3 var(--sans);
+  letter-spacing: 1px;
+  color: var(--boom-ink);
+}
+
+.stripes {
+  width: 34px;
+  height: 12px;
+  flex: none;
+}
+
+.onair {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font: 700 9px var(--sans);
+  letter-spacing: 1px;
+  color: var(--boom-ink);
+}
+
+.led {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  margin-bottom: 4px;
+}
+
+.vfd {
+  order: 3;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2;
+  margin-top: 12px;
+  flex: none;
+}
+
+.vfd-status {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12px;
+  font: 700 12px var(--mono);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  text-align: center;
+  color: #41f5e3;
+  text-shadow: 0 0 4px rgba(65, 245, 227, 0.6);
+  opacity: 0.55;
+}
+
+.speakers {
+  order: 4;
+  display: flex;
+  width: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+  margin-top: 14px;
+}
+
+.woofer {
+  position: relative;
+  flex: 1;
+}
+
+.woofer .cone {
+  will-change: transform;
+}
+
+.badge {
+  order: 5;
+  margin-top: 10px;
+  flex: none;
+  font: italic 700 11px var(--sans);
+  letter-spacing: 3px;
+  color: var(--boom-ink);
+  text-shadow: 0 0.6px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* Phone-only layout pieces are hidden; the wide layout below turns them on. */
+.shelf,
+.nav {
+  display: none;
+}
+
+/* ---------- Wide screens: both radios turn on their side, like the real things ---------- */
+
+@media (min-width: 900px) and (min-height: 520px) and (min-aspect-ratio: 5/4) {
+  :root {
+    --canvas-scale: 1.3;
+  }
+
+  .stage {
+    max-width: none;
+    justify-content: center;
+    padding-bottom: 72px;
+  }
+
+  .nav {
+    position: fixed;
+    top: 50%;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    margin-top: -26px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.07);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    transition: background 0.2s, opacity 0.2s;
+  }
+
+  .nav:hover {
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  .nav[hidden] {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .nav svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.85);
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .nav.prev {
+    left: 28px;
+  }
+
+  .nav.next {
+    right: 28px;
+  }
+
+  /* 1960s: a tabletop set on a shelf, grille left, dial and knob right. */
+  .vintage {
+    --cab-h: min(600px, calc(100vh - 170px));
+    --cab-w: min(1100px, calc(100vw - 200px), calc(var(--cab-h) * 1.9));
+    background:
+      radial-gradient(ellipse 55% 65% at 50% 32%, rgba(255, 186, 110, 0.16), transparent 70%),
+      repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0 2px, transparent 2px 46px),
+      radial-gradient(circle 75vmax at 50% 25%, #3a271b, #140d09);
+  }
+
+  .cabinet {
+    flex: none;
+    width: var(--cab-w);
+    height: var(--cab-h);
+    padding: 28px 34px 30px;
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-areas:
+      'header header'
+      'grille dial'
+      'grille controls'
+      'grille plaque';
+    column-gap: 30px;
+    box-shadow: 0 30px 50px rgba(0, 0, 0, 0.55), 0 8px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .header {
+    grid-area: header;
+    margin-bottom: 22px;
+  }
+
+  .v-title {
+    font-size: 46px;
+    letter-spacing: 6px;
+  }
+
+  .v-tagline {
+    font-size: 15px;
+    letter-spacing: 2px;
+  }
+
+  .eye {
+    width: 68px;
+    height: 68px;
+  }
+
+  .grille {
+    grid-area: grille;
+    height: 100%;
+    margin-top: 0;
+  }
+
+  .dial {
+    grid-area: dial;
+    margin-top: 0;
+  }
+
+  .controls {
+    grid-area: controls;
+    align-self: center;
+    margin-top: 12px;
+  }
+
+  .knob {
+    width: clamp(92px, 17vh, 132px);
+    height: clamp(92px, 17vh, 132px);
+  }
+
+  .knob-label {
+    font-size: 14px;
+    padding-top: 10px;
+  }
+
+  .plaque {
+    grid-area: plaque;
+    justify-self: center;
+    margin-top: 0;
+  }
+
+  .feet {
+    width: var(--cab-w);
+    padding: 0 80px;
+  }
+
+  .feet span {
+    width: 54px;
+    height: 12px;
+    background: linear-gradient(#5a341c, #1a0d05);
+  }
+
+  .shelf {
+    display: block;
+    flex: none;
+    width: 100vw;
+    height: 26px;
+    background:
+      linear-gradient(rgba(255, 220, 170, 0.22), transparent 3px),
+      linear-gradient(#6a4026, #4a2a16 55%, #24130a);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
+  }
+
+  /* 1980s: the classic wide boombox, woofers at the ends and the deck in the middle. */
+  .boombox {
+    --box-h: min(560px, calc(100vh - 190px));
+    --box-w: min(1180px, calc(100vw - 200px), calc(var(--box-h) * 2.15));
+  }
+
+  .handle {
+    width: calc(var(--box-w) * 0.46);
+    height: 52px;
+  }
+
+  .body {
+    flex: none;
+    width: var(--box-w);
+    height: var(--box-h);
+    padding: 18px 22px 14px;
+    display: grid;
+    grid-template-columns: 1fr minmax(380px, 1.35fr) 1fr;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      'brand brand brand'
+      'panel panel panel'
+      '. badge .';
+    align-items: center;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 90px rgba(255, 62, 165, 0.22);
+  }
+
+  .brand {
+    grid-area: brand;
+    margin: 0 0 14px;
+  }
+
+  .b-title {
+    font-size: 38px;
+  }
+
+  .b-sub {
+    font-size: 13px;
+  }
+
+  /* The woofers take the body's outer columns; the deck sits over the middle one. */
+  .speakers {
+    grid-area: panel;
+    align-self: stretch;
+    display: grid;
+    grid-template-columns: subgrid;
+    margin-top: 0;
+  }
+
+  .woofer:last-child {
+    grid-column: 3;
+  }
+
+  .deck {
+    grid-area: 2 / 2 / 3 / 3;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 14px;
+    background: linear-gradient(#eef0f2, #c4c9cf 55%, #9aa0a7);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 -2px 3px rgba(0, 0, 0, 0.25), 0 6px 18px rgba(0, 0, 0, 0.55);
+  }
+
+  .vfd {
+    margin-top: 0;
+  }
+
+  .vfd-status {
+    font-size: 14px;
+    letter-spacing: 4px;
+  }
+
+  .badge {
+    grid-area: badge;
+    justify-self: center;
+    margin-top: 12px;
+    font-size: 12px;
+    letter-spacing: 4px;
+  }
+}
