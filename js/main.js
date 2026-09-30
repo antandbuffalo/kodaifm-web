@@ -5,7 +5,11 @@ import { AnalyserFeed, AudioSpectrum, SimulatedFeed } from './spectrum.js';
 import { isOn } from './station.js';
 import { createVintage } from './vintage.js';
 
-const DESIGN_KEY = 'design';
+// Saved by name, so reordering or adding styles keeps each listener's choice.
+const DESIGN_KEY = 'design_name';
+const BANNER_KEY = 'app_banner_closed';
+const SHARE_URL = 'https://antandbuffalo.github.io/kodaifm-web/';
+const SHARE_TEXT = 'Listen to AIR Kodaikanal 100.5 FM live on Kodai FM';
 
 const radio = new RadioPlayer(document.querySelector('audio'));
 const spectrum = new AudioSpectrum();
@@ -25,7 +29,8 @@ function wake() {
   raf = requestAnimationFrame(frame);
 }
 
-const designs = [createVintage, createBoombox].map((create, i) => create(pages[i], { radio, wake }));
+const creators = { boombox: createBoombox, vintage: createVintage };
+const designs = pages.map((page) => creators[page.dataset.design](page, { radio, wake }));
 
 function frame(now) {
   raf = 0;
@@ -49,15 +54,22 @@ function onPhase() {
 }
 radio.addEventListener('phase', onPhase);
 
-// Swipeable radio styles; the last one used is remembered.
-function readSaved() {
+// Private mode or blocked storage: settings just aren't remembered.
+function load(key) {
   try {
-    return clamp(parseInt(localStorage.getItem(DESIGN_KEY), 10) || 0, 0, pages.length - 1);
+    return localStorage.getItem(key);
   } catch {
-    return 0;
+    return null;
   }
 }
-let current = readSaved();
+function save(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {}
+}
+
+// Swipeable radio styles; the last one used is remembered.
+let current = Math.max(0, pages.findIndex((p) => p.dataset.design === load(DESIGN_KEY)));
 const showPage = (i, behavior = 'smooth') =>
   pager.scrollTo({ left: clamp(i, 0, pages.length - 1) * pager.clientWidth, behavior });
 const prev = document.querySelector('.nav.prev');
@@ -74,11 +86,7 @@ pager.addEventListener(
     if (i === current) return;
     current = i;
     markCurrent();
-    try {
-      localStorage.setItem(DESIGN_KEY, String(i));
-    } catch {
-      // Private mode or blocked storage: the style just isn't remembered.
-    }
+    save(DESIGN_KEY, pages[i].dataset.design);
   },
   { passive: true },
 );
@@ -86,6 +94,7 @@ dots.forEach((dot, i) => dot.addEventListener('click', () => showPage(i)));
 prev.addEventListener('click', () => showPage(current - 1));
 next.addEventListener('click', () => showPage(current + 1));
 document.addEventListener('keydown', (e) => {
+  if (about.open) return;
   if (e.key === 'ArrowRight') showPage(current + 1);
   if (e.key === 'ArrowLeft') showPage(current - 1);
   // Space switches the radio on and off, except on a focused button, which handles it itself.
@@ -94,6 +103,38 @@ document.addEventListener('keydown', (e) => {
     radio.toggle();
   }
 });
+// About slides up from the link under the disclaimer.
+const about = document.querySelector('dialog.about');
+document.querySelector('.about-link').addEventListener('click', () => about.showModal());
+// A tap on the dimmed backdrop lands on the dialog itself, outside the sheet.
+about.addEventListener('click', (e) => {
+  if (e.target === about) about.close();
+});
+const shareButton = about.querySelector('.share');
+shareButton.addEventListener('click', async () => {
+  if (navigator.share) {
+    // Cancelling the share sheet rejects; nothing to do.
+    await navigator.share({ title: 'Kodai FM', text: SHARE_TEXT, url: SHARE_URL }).catch(() => {});
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(`${SHARE_TEXT}: ${SHARE_URL}`);
+    const label = shareButton.textContent;
+    shareButton.textContent = 'Link copied';
+    setTimeout(() => (shareButton.textContent = label), 2000);
+  } catch {
+    // No clipboard access (insecure origin or denied): leave the button as it is.
+  }
+});
+
+// Android phones get a banner for the Play Store app, until they close it.
+const banner = document.querySelector('.app-banner');
+banner.hidden = !/Android/i.test(navigator.userAgent) || load(BANNER_KEY) === '1';
+banner.querySelector('.app-banner-close').addEventListener('click', () => {
+  banner.hidden = true;
+  save(BANNER_KEY, '1');
+});
+
 // Only styles on screen redraw.
 const observer = new IntersectionObserver(
   (entries) => {

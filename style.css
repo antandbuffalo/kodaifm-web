@@ -8,6 +8,12 @@
   --brass-dark: #7d5e25;
   --wood-ink: #3b2a18;
   --boom-ink: #24282c;
+  /* About sheet and app banner. */
+  --sheet-bg: #1d1b20;
+  --sheet-text: #e6e1e5;
+  --sheet-muted: #cac4d0;
+  --accent: #d0bcff;
+  --on-accent: #381e72;
   /* Canvas lettering scale, read by layer() in js/draw.js; the wide layout raises it. */
   --canvas-scale: 1;
 }
@@ -21,6 +27,12 @@ body {
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;
+}
+
+/* A column: the Android app banner, when shown, pushes the pager down. */
+body {
+  display: flex;
+  flex-direction: column;
 }
 
 .sr-only {
@@ -53,15 +65,16 @@ button {
   touch-action: manipulation;
 }
 
-button:focus-visible {
+button:focus-visible,
+a:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 3px;
 }
 
 /* Pager: one radio style per screen, swiped sideways. */
 #pager {
-  position: fixed;
-  inset: 0;
+  flex: 1;
+  min-height: 0;
   display: flex;
   overflow-x: auto;
   overflow-y: hidden;
@@ -93,7 +106,7 @@ button:focus-visible {
   flex-direction: column;
   align-items: center;
   padding: calc(12px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right))
-    calc(48px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+    calc(76px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
 }
 
 .chrome {
@@ -137,6 +150,172 @@ button:focus-visible {
   font: 10px var(--sans);
   color: rgba(255, 255, 255, 0.5);
   text-align: center;
+}
+
+.about-link {
+  padding: 6px 16px;
+  font: 12px var(--sans);
+  color: rgba(255, 255, 255, 0.75);
+  pointer-events: auto;
+}
+
+/* Android app banner across the top. */
+.app-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: calc(10px + env(safe-area-inset-top)) calc(8px + env(safe-area-inset-right)) 10px
+    calc(16px + env(safe-area-inset-left));
+  background: var(--sheet-bg);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font: 12px/1.3 var(--sans);
+  color: var(--sheet-muted);
+}
+
+.app-banner[hidden] {
+  display: none;
+}
+
+.app-banner img {
+  border-radius: 8px;
+}
+
+.app-banner-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.app-banner-text strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sheet-text);
+}
+
+.app-banner-get {
+  padding: 8px 20px;
+  border-radius: 20px;
+  background: var(--accent);
+  font: 600 14px var(--sans);
+  color: var(--on-accent);
+  text-decoration: none;
+}
+
+.app-banner-close {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+}
+
+.app-banner-close svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: var(--sheet-muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* About: a sheet that slides up over the radio. */
+.about {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90%;
+  margin: auto auto 0;
+  padding: 0;
+  border: 0;
+  border-radius: 28px 28px 0 0;
+  background: var(--sheet-bg);
+  color: var(--sheet-text);
+  font: 14px/1.45 var(--sans);
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.sheet:focus {
+  outline: none;
+}
+
+.about[open] {
+  animation: sheet-up 0.25s ease-out;
+}
+
+.about::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about[open] {
+    animation: none;
+  }
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 24px calc(24px + env(safe-area-inset-bottom));
+}
+
+.grip {
+  align-self: center;
+  width: 32px;
+  height: 4px;
+  margin-bottom: 20px;
+  border-radius: 2px;
+  background: rgba(230, 225, 229, 0.4);
+}
+
+.sheet h2 {
+  margin: 0 0 12px;
+  font: 400 24px/1.3 var(--sans);
+}
+
+.sheet p {
+  margin: 0 0 12px;
+}
+
+.sheet .small {
+  font-size: 12px;
+  color: var(--sheet-muted);
+}
+
+.links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.links > * {
+  padding: 10px 12px;
+  margin-left: -12px;
+  border-radius: 20px;
+  font: 500 14px var(--sans);
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.maker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* The brown logo is drawn for a light background. */
+.maker img {
+  padding: 8px;
+  border-radius: 16px;
+  background: #fff;
 }
 
 /* The radio's case (walnut cabinet, silver body): texture canvas behind, parts stacked on top. */
@@ -476,7 +655,7 @@ button:focus-visible {
   .stage {
     max-width: none;
     justify-content: center;
-    padding-bottom: 72px;
+    padding-bottom: 96px;
   }
 
   .nav {

@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Kodai FM</title>
     <meta name="description" content="Listen to AIR Kodaikanal 100.5 FM live on a 1960s valve radio or a 1980s boombox." />
+    <!-- Link previews (WhatsApp, Facebook, X, Slack): absolute URLs, as the crawlers require. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Kodai FM" />
+    <meta property="og:title" content="Kodai FM by Jeyabalaji" />
+    <meta property="og:description" content="Listen to AIR Kodaikanal 100.5 FM live on a 1960s valve radio or a 1980s boombox." />
+    <meta property="og:url" content="https://antandbuffalo.github.io/kodaifm-web/" />
+    <meta property="og:image" content="https://antandbuffalo.github.io/kodaifm-web/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Kodai FM: a 1980s boombox and a 1960s valve radio tuned to 100.5 MHz" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="theme-color" content="#000000" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -17,33 +28,21 @@
   <body>
     <h1 class="sr-only">Kodai FM · AIR Kodaikanal 100.5 MHz</h1>
 
-    <main id="pager">
-      <section class="page vintage" aria-label="1960s valve radio">
-        <div class="stage">
-          <div class="cabinet case">
-            <canvas class="wood fill"></canvas>
-            <div class="header">
-              <div class="titles">
-                <div class="v-title">KODAI FM</div>
-                <div class="v-tagline">AIR Kodaikanal · 100.5 MHz</div>
-              </div>
-              <div class="eye" aria-hidden="true"><canvas></canvas></div>
-            </div>
-            <canvas class="dial" aria-hidden="true"></canvas>
-            <canvas class="grille" aria-hidden="true"></canvas>
-            <div class="controls">
-              <span class="knob-label off" aria-hidden="true">OFF</span>
-              <button class="knob" type="button" aria-label="Play"><canvas></canvas></button>
-              <span class="knob-label on" aria-hidden="true">ON</span>
-            </div>
-            <div class="plaque" aria-live="polite"></div>
-          </div>
-          <div class="feet" aria-hidden="true"><span></span><span></span></div>
-          <div class="shelf" aria-hidden="true"></div>
-        </div>
-      </section>
+    <!-- Shown only on Android phones, until closed. -->
+    <aside class="app-banner" aria-label="Android app" hidden>
+      <img src="icons/icon-192.png" width="36" height="36" alt="" loading="lazy" />
+      <div class="app-banner-text">
+        <strong>Kodai FM for Android</strong>
+        <span>Free on Google Play</span>
+      </div>
+      <a class="app-banner-get" href="https://play.google.com/store/apps/details?id=com.antandbuffalo.kodaifm" target="_blank" rel="noopener">Get</a>
+      <button class="app-banner-close" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>
+      </button>
+    </aside>
 
-      <section class="page boombox" aria-label="1980s boombox">
+    <main id="pager">
+      <section class="page boombox" data-design="boombox" aria-label="1980s boombox">
         <canvas class="backdrop fill" aria-hidden="true"></canvas>
         <div class="stage">
           <div class="handle" aria-hidden="true"><canvas class="fill"></canvas></div>
@@ -93,15 +92,65 @@
           </div>
         </div>
       </section>
+
+      <section class="page vintage" data-design="vintage" aria-label="1960s valve radio">
+        <div class="stage">
+          <div class="cabinet case">
+            <canvas class="wood fill"></canvas>
+            <div class="header">
+              <div class="titles">
+                <div class="v-title">KODAI FM</div>
+                <div class="v-tagline">AIR Kodaikanal · 100.5 MHz</div>
+              </div>
+              <div class="eye" aria-hidden="true"><canvas></canvas></div>
+            </div>
+            <canvas class="dial" aria-hidden="true"></canvas>
+            <canvas class="grille" aria-hidden="true"></canvas>
+            <div class="controls">
+              <span class="knob-label off" aria-hidden="true">OFF</span>
+              <button class="knob" type="button" aria-label="Play"><canvas></canvas></button>
+              <span class="knob-label on" aria-hidden="true">ON</span>
+            </div>
+            <div class="plaque" aria-live="polite"></div>
+          </div>
+          <div class="feet" aria-hidden="true"><span></span><span></span></div>
+          <div class="shelf" aria-hidden="true"></div>
+        </div>
+      </section>
     </main>
 
     <footer class="chrome">
       <nav class="dots" aria-label="Radio style">
-        <button class="dot" type="button" aria-label="1960s valve radio"></button>
         <button class="dot" type="button" aria-label="1980s boombox"></button>
+        <button class="dot" type="button" aria-label="1960s valve radio"></button>
       </nav>
       <p class="disclaimer">Unofficial app · Not affiliated with All India Radio or Prasar Bharati</p>
+      <button class="about-link" type="button" aria-haspopup="dialog">About</button>
     </footer>
+
+    <dialog class="about" aria-labelledby="about-title">
+      <!-- Focus the sheet on open, not the first link. -->
+      <div class="sheet" tabindex="-1" autofocus>
+        <div class="grip" aria-hidden="true"></div>
+        <h2 id="about-title">Kodai FM</h2>
+        <p>Listen to AIR Kodaikanal, 100.5 MHz, live from anywhere.</p>
+        <p class="small">
+          This is an unofficial app. It is not affiliated with, endorsed by or connected to All India Radio or Prasar
+          Bharati. The broadcast belongs to its owners.
+        </p>
+        <div class="links">
+          <button class="share" type="button">Share Kodai FM</button>
+          <a href="https://antandbuffalo.github.io/privacy-policy/apps/kodaifm/privacy-policy.html" target="_blank" rel="noopener">Privacy policy</a>
+          <a href="mailto:antandbuffalo@gmail.com">Contact · antandbuffalo@gmail.com</a>
+          <a href="https://play.google.com/store/apps/details?id=com.antandbuffalo.kodaifm" target="_blank" rel="noopener">Get the Android app</a>
+        </div>
+        <div class="maker">
+          <span class="small">Made by</span>
+          <img src="icons/ant-and-buffalo-logo.webp" width="96" height="96" alt="Ant &amp; Buffalo" loading="lazy" />
+          <span>Jeyabalaji</span>
+        </div>
+      </div>
+    </dialog>
 
     <button class="nav prev" type="button" aria-label="Previous radio style" title="Previous style (←)">
       <svg viewBox="0 0 24 24"><path d="M15 5 8 12l7 7" /></svg>

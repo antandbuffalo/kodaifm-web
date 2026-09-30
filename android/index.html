@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Kodai FM for Android</title>
+    <meta name="description" content="Listen to AIR Kodaikanal 100.5 FM live on your Android phone. Free on Google Play." />
+    <!-- Link previews (WhatsApp, Facebook, X, Slack): absolute URLs, as the crawlers require. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Kodai FM" />
+    <meta property="og:title" content="Kodai FM for Android by Jeyabalaji" />
+    <meta property="og:description" content="Listen to AIR Kodaikanal 100.5 FM live on your Android phone. Free on Google Play." />
+    <meta property="og:url" content="https://antandbuffalo.github.io/kodaifm-web/android/" />
+    <meta property="og:image" content="https://antandbuffalo.github.io/kodaifm-web/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Kodai FM: a 1980s boombox and a 1960s valve radio tuned to 100.5 MHz" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#141018" />
+    <link rel="icon" href="../icons/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      }
+
+      body {
+        box-sizing: border-box;
+        min-height: 100vh;
+        min-height: 100dvh;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: calc(32px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+        background: #141018;
+        color: #f1e3c0;
+        font: 16px/1.5 var(--sans);
+        text-align: center;
+      }
+
+      main {
+        margin: auto 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .icon {
+        border-radius: 28px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      }
+
+      h1 {
+        margin: 24px 0 4px;
+        font: 700 40px/1.1 Georgia, 'Times New Roman', serif;
+        letter-spacing: 3px;
+        background: linear-gradient(#f3da9a, #c9a45c 55%, #7d5e25);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .tagline {
+        margin: 0;
+        font: italic 18px/1.4 Georgia, 'Times New Roman', serif;
+      }
+
+      .badge {
+        margin-top: 28px;
+      }
+
+      .badge img {
+        display: block;
+        width: 240px;
+        height: auto;
+      }
+
+      .web {
+        margin-top: 12px;
+        font-size: 14px;
+        color: #cac4d0;
+      }
+
+      a:focus-visible {
+        outline: 2px solid #fff;
+        outline-offset: 3px;
+        border-radius: 8px;
+      }
+
+      .web a {
+        color: #f3da9a;
+      }
+
+      footer {
+        padding-top: 40px;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.5);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img class="icon" src="../icons/icon-192.png" width="128" height="128" alt="" />
+      <h1>KODAI FM</h1>
+      <p class="tagline">AIR Kodaikanal · 100.5 MHz, live on your Android phone</p>
+      <a class="badge" href="https://play.google.com/store/apps/details?id=com.antandbuffalo.kodaifm">
+        <img src="../icons/google-play-badge.png" width="646" height="250" alt="Get it on Google Play" />
+      </a>
+      <p class="web">No Android phone? <a href="../">Listen in your browser</a></p>
+    </main>
+    <footer>
+      Unofficial app · Not affiliated with All India Radio or Prasar Bharati<br />
+      Google Play and the Google Play logo are trademarks of Google LLC.
+    </footer>
+  </body>
+</html>
