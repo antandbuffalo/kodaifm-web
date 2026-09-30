@@ -17,6 +17,12 @@
     <meta property="og:image:alt" content="Kodai FM: a 1980s boombox and a 1960s valve radio tuned to 100.5 MHz" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="theme-color" content="#141018" />
+    <script>
+      // Android phones go straight to the store. replace() keeps Back from bouncing here again.
+      if (/Android/i.test(navigator.userAgent)) {
+        location.replace('https://play.google.com/store/apps/details?id=com.antandbuffalo.kodaifm');
+      }
+    </script>
     <link rel="icon" href="../icons/favicon-32.png" sizes="32x32" type="image/png" />
     <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png" />
     <style>
