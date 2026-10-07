@@ -5,11 +5,13 @@ import { AnalyserFeed, AudioSpectrum, SimulatedFeed } from './spectrum.js';
 import { isOn } from './station.js';
 import { createVintage } from './vintage.js';
 import { load, save } from './storage.js';
-import { Volume } from './volume.js';
+import { Volume, VOLUME_MAX } from './volume.js';
 
 // Saved by name, so reordering or adding styles keeps each listener's choice.
 const DESIGN_KEY = 'design_name';
 const BANNER_KEY = 'app_banner_closed';
+/** How long the device-volume tip stays up; longer than the readout, since it's a sentence. */
+const VOLUME_TIP_MS = 2500;
 const SHARE_URL = 'https://antandbuffalo.github.io/kodaifm-web/';
 const SHARE_TEXT = 'Listen to AIR Kodaikanal 100.5 FM live on Kodai FM';
 
@@ -99,6 +101,17 @@ document.addEventListener('keydown', (e) => {
     radio.toggle();
   }
 });
+// At the top of the scale, a tip points to the device's own volume.
+const volumeTip = document.querySelector('.volume-tip');
+let volumeTipTimer = 0;
+volume.addEventListener('input', () => {
+  if (volume.level !== VOLUME_MAX) return;
+  volumeTip.textContent = 'Still low? Turn up your device volume.';
+  volumeTip.classList.add('shown');
+  clearTimeout(volumeTipTimer);
+  volumeTipTimer = setTimeout(() => volumeTip.classList.remove('shown'), VOLUME_TIP_MS);
+});
+
 // About slides up from the link under the disclaimer.
 const about = document.querySelector('dialog.about');
 document.querySelector('.about-link').addEventListener('click', () => about.showModal());
