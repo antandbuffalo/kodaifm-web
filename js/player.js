@@ -17,6 +17,8 @@ export class RadioPlayer extends EventTarget {
   #audio;
   #hls = null;
   #context = null;
+  #gain = null;
+  #volume = 1;
   #wanted = false;
   #native = IOS || !Hls.isSupported();
 
@@ -46,6 +48,13 @@ export class RadioPlayer extends EventTarget {
       this.#hls = hls;
     }
     this.#audio.play().catch((e) => e.name !== 'AbortError' && this.#wanted && this.#fail());
+  }
+
+  /** Output gain, 0 to 1. */
+  setVolume(volume) {
+    this.#volume = volume;
+    if (this.#gain) this.#gain.gain.setTargetAtTime(volume, this.#context.currentTime, 0.015);
+    else this.#audio.volume = volume;
   }
 
   toggle() {
@@ -80,9 +89,14 @@ export class RadioPlayer extends EventTarget {
       if (!this.#context) {
         const context = new AudioContext();
         const analyser = context.createAnalyser();
+        // Volume comes after the analyser, so the meters read the broadcast at any volume.
+        const gain = context.createGain();
+        gain.gain.value = this.#volume;
         context.createMediaElementSource(this.#audio).connect(analyser);
-        analyser.connect(context.destination);
+        analyser.connect(gain).connect(context.destination);
+        this.#audio.volume = 1;
         this.#context = context;
+        this.#gain = gain;
         this.analyser = analyser;
       }
       this.#context.resume();

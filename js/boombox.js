@@ -3,9 +3,10 @@ import {
   BLACK, MONO, PX, TRANSPARENT, WHITE, circle, clamp, css, font, layer, line, lineHeight, linear, measure, mix,
   radial, rgb, roundRect, seeded, strokeCircle, strokePath, strokeRoundRect, sweep, text,
 } from './draw.js';
-import { pressable } from './controls.js';
+import { pressable, volumeSlider } from './controls.js';
 import { BANDS } from './spectrum.js';
 import { STATION_FREQ_MHZ, isOn } from './station.js';
+import { VOLUME_MAX } from './volume.js';
 
 const B = {
   skyTop: rgb(0x0d0628),
@@ -17,6 +18,7 @@ const B = {
   silverDark: rgb(0x8a9098),
   chromeDark: rgb(0x5a6068),
   panel: rgb(0x161616),
+  ink: rgb(0x24282c),
   mesh: rgb(0x383838),
   vfd: rgb(0x41f5e3),
   vfdGhost: rgb(0x0b1e1e),
@@ -42,6 +44,9 @@ const DIAL_DIGITS = DIAL_TEXT.replace('.', '');
 const DIAL_DOT_AFTER = DIAL_TEXT.indexOf('.') - 1;
 const ANALYSER_BLOCKS = 8;
 const KEY_TRAVEL = 6;
+/** How long the display shows the volume after it last changed. */
+const VOLUME_SHOWN_MS = 1400;
+const FADER_CAP_W = 30;
 
 const SEVEN_SEGMENT = {
   0: 'abcdef', 1: 'bc', 2: 'abdeg', 3: 'abcdg', 4: 'bcfg',
@@ -51,12 +56,15 @@ const SEVEN_SEGMENT = {
 const vfdColor = (level) => css(mix(B.vfdGhost, B.vfd, level));
 
 /** A 1980s silver boombox. PLAY latches down while the radio is on; STOP releases it. */
-export function createBoombox(page, { radio, wake }) {
+export function createBoombox(page, { radio, volume, wake }) {
   const $ = (sel) => page.querySelector(sel);
   const $$ = (sel) => [...page.querySelectorAll(sel)];
   const power = new Tween(0, 500);
   const time = new Wave(4000, 'restart');
   const blink = new Wave(300, 'reverse');
+  const faderAt = new Tween(volume.fraction, 120);
+  const volumeShown = new Tween(0, 150);
+  let volumeTimer = 0;
 
   layer($('.backdrop'), drawBackdrop, { prepare: prepareBackdrop });
   layer($('.handle canvas'), drawHandle, { prepare: prepareHandle });
@@ -71,10 +79,11 @@ export function createBoombox(page, { radio, wake }) {
   const face = layer($('.vfd-face'), drawFace, { prepare: prepareFace });
   const meters = layer($('.vfd-meters'), drawMeters, { prepare: (ctx, w, h, scale) => vfdLayout(w, h, scale) });
   const led = layer($('.led canvas'), drawLed, { prepare: prepareLed, bleed: 8 });
+  const fader = layer($('.fader canvas'), drawFader, { prepare: prepareFader });
   const cones = $$('.woofer .cone');
   const status = $('.vfd-status');
   let shownKick = 0;
-  let shownPower = -1;
+  let shownGlow = -1;
 
   const keys = [
     { el: $('.key.play'), accent: css(B.keyPlay), latched: () => isOn(radio.phase), onClick: () => radio.play() },
@@ -94,18 +103,34 @@ export function createBoombox(page, { radio, wake }) {
     );
   }
 
+  // The display shows the level for a moment after each touch of the volume, even at an end.
+  volume.addEventListener('input', () => {
+    const now = performance.now();
+    faderAt.set(volume.fraction, now);
+    volumeShown.set(1, now);
+    clearTimeout(volumeTimer);
+    volumeTimer = setTimeout(() => {
+      volumeShown.set(0, performance.now());
+      wake();
+    }, VOLUME_SHOWN_MS);
+    wake();
+  });
+  // The cap's centre stops half a cap in from each end of the slot.
+  volumeSlider($('.fader'), $('.fader-slot'), FADER_CAP_W / 2, volume);
+
   return {
     setPhase(now) {
       const { phase } = radio;
       power.set(isOn(phase) ? 1 : 0, now);
       time.setActive(isOn(phase), now);
       blink.setActive(phase === 'tuning', now);
-      status.textContent = STATUS[phase];
     },
 
     /** Advances animations; redraws when `visible`. True while something is still moving. */
     frame(now, dt, spectrum, visible) {
-      let moving = power.step(now);
+      let moving = [power.step(now), faderAt.step(now), volumeShown.step(now)].some(Boolean);
+      const statusText = volumeShown.to ? (volume.level ? 'Volume' : 'Muted') : STATUS[radio.phase];
+      if (status.textContent !== statusText) status.textContent = statusText;
       for (const k of keys) {
         k.depth.set(k.pressed ? 1 : k.latched() ? 0.75 : 0);
         moving = k.depth.step(dt) || moving;
@@ -117,15 +142,24 @@ export function createBoombox(page, { radio, wake }) {
       const p = power.value;
       const t = time.at(now);
       const b = Math.abs(blink.at(now));
-      face.update({ power: p, digits: p * (tuning ? 0.35 + 0.65 * b : 1), stereo: live ? p : 0 });
+      const v = volumeShown.value;
+      face.update({ power: p, digits: p * (tuning ? 0.35 + 0.65 * b : 1), stereo: live ? p : 0, vol: v, level: volume.level });
       const sweepColumn = Math.floor(t * BANDS * 4) % BANDS;
+      // The analyser becomes a level meter while the volume shows.
+      const filled = volume.fraction * BANDS;
+      const levels =
+        v > 0
+          ? Array.from({ length: BANDS }, (_, col) => clamp(Math.ceil((filled - col) * ANALYSER_BLOCKS), 0, ANALYSER_BLOCKS))
+          : Array.from(spectrum.bands, (s, col) =>
+              live ? clamp(Math.floor(s * ANALYSER_BLOCKS), 0, ANALYSER_BLOCKS) : tuning && col === sweepColumn ? 3 : 0,
+            );
       meters.update({
         power: p,
+        vol: v,
         signal: live ? (Math.sin(2 * Math.PI * 3 * t) > 0.8 ? 4 : 5) : tuning ? Math.floor(t * 20) % 6 : 0,
-        levels: Array.from(spectrum.bands, (v, col) =>
-          live ? clamp(Math.floor(v * ANALYSER_BLOCKS), 0, ANALYSER_BLOCKS) : tuning && col === sweepColumn ? 3 : 0,
-        ),
+        levels,
       });
+      fader.update({ at: faderAt.value });
       led.update({ lit: live ? 1 : tuning ? b : 0 });
 
       // Cones punch out on real bass hits. A CSS transform, so nothing repaints.
@@ -143,9 +177,10 @@ export function createBoombox(page, { radio, wake }) {
         }
       }
       // Standby glow while off so the "press play" hint stays readable.
-      if (p !== shownPower) {
-        shownPower = p;
-        status.style.opacity = String(0.55 + 0.45 * p);
+      const glow = Math.max(p, v);
+      if (glow !== shownGlow) {
+        shownGlow = glow;
+        status.style.opacity = String(0.55 + 0.45 * glow);
       }
       return moving;
     },
@@ -369,6 +404,15 @@ function prepareFace(ctx, w, h, scale) {
     addSevenSegment(ghost, 'abcdefg', left, l.digitsTop, l.digitW, l.digitH);
     addSevenSegment(lit, SEVEN_SEGMENT[ch], left, l.digitsTop, l.digitW, l.digitH);
   });
+  // The level in the two right-hand digits, for every step, built once.
+  const volumeDigits = Array.from({ length: VOLUME_MAX + 1 }, (_, level) => {
+    const path = new Path2D();
+    [...String(level).padStart(2, '0')].forEach((ch, j) => {
+      const left = l.digitsLeft + (DIAL_DIGITS.length - 2 + j) * (l.digitW + l.digitGap);
+      addSevenSegment(path, SEVEN_SEGMENT[ch], left, l.digitsTop, l.digitW, l.digitH);
+    });
+    return path;
+  });
   const dot = l.digitW * 0.2;
   const dotX = l.digitsLeft + (DIAL_DOT_AFTER + 1) * l.digitW + (DIAL_DOT_AFTER + 0.5) * l.digitGap - dot / 2;
   const dotY = l.digitsTop + l.digitH - dot;
@@ -381,6 +425,7 @@ function prepareFace(ctx, w, h, scale) {
     ...l,
     lit,
     ghost,
+    volumeDigits,
     fmX,
     stereoX: fmX + measure(ctx, 'FM', l.small) + 8,
     mhzX: l.digitsLeft + l.digitsWidth + l.digitW * 0.45,
@@ -389,7 +434,7 @@ function prepareFace(ctx, w, h, scale) {
 }
 
 /** Vacuum-fluorescent display face: digits and indicators. The meters are a separate layer. */
-function drawFace(ctx, w, h, c, { power = 0, digits = 0, stereo = 0 }) {
+function drawFace(ctx, w, h, c, { power = 0, digits = 0, stereo = 0, vol = 0, level = 0 }) {
   const { glass } = c;
   roundRect(ctx, 0, 0, w, h, 12, '#0A0A0A');
   strokeRoundRect(ctx, 0.75, 0.75, w - 1.5, h - 1.5, 12, css(B.chromeDark), 1.5);
@@ -398,26 +443,46 @@ function drawFace(ctx, w, h, c, { power = 0, digits = 0, stereo = 0 }) {
   text(ctx, 'STEREO', c.stereoX, c.indicatorTop, c.small, vfdColor(stereo));
   ctx.fillStyle = css(B.vfdGhost);
   ctx.fill(c.ghost);
-  if (digits > 0.01) {
-    ctx.strokeStyle = css(B.vfd, 0.3 * digits);
-    ctx.lineWidth = 4;
-    ctx.lineJoin = 'round';
-    ctx.stroke(c.lit);
-    ctx.fillStyle = vfdColor(digits);
-    ctx.fill(c.lit);
-  }
+  // While the volume shows, it replaces the frequency, lit even when the radio is off.
+  litDigits(ctx, c.lit, digits * (1 - vol));
+  // VOL takes the MHz label's place, so the two crossfade instead of overlapping.
+  ctx.globalAlpha = 1 - vol;
   text(ctx, 'MHz', c.mhzX, c.mhzTop, c.unit, vfdColor(power));
+  ctx.globalAlpha = 1;
+  if (vol > 0.01) {
+    litDigits(ctx, c.volumeDigits[level], vol);
+    ctx.globalAlpha = vol;
+    text(ctx, 'VOL', c.mhzX, c.mhzTop, c.unit, vfdColor(vol));
+  }
+  ctx.globalAlpha = 1;
 }
 
-/** Lit signal bars and analyser blocks, batched into two fills (the top two rows glow amber). */
-function drawMeters(ctx, w, h, l, { power = 0, signal = 0, levels = [] }) {
+/** Glowing seven-segment digits at `level` brightness. */
+function litDigits(ctx, path, level) {
+  if (level <= 0.01) return;
+  ctx.strokeStyle = css(B.vfd, 0.3 * level);
+  ctx.lineWidth = 4;
+  ctx.lineJoin = 'round';
+  ctx.stroke(path);
+  ctx.fillStyle = vfdColor(level);
+  ctx.fill(path);
+}
+
+/**
+ * Lit signal bars and analyser blocks, batched into a few fills. The top two rows glow amber,
+ * except while the analyser shows the volume (`vol`).
+ */
+function drawMeters(ctx, w, h, l, { power = 0, signal = 0, levels = [], vol = 0 }) {
+  const bars = new Path2D();
   const normal = new Path2D();
   const peak = new Path2D();
-  for (let i = 0; i < signal; i++) normal.rect(...l.bars[i]);
+  for (let i = 0; i < signal; i++) bars.rect(...l.bars[i]);
   levels.forEach((n, col) => {
-    for (let b = 0; b < n; b++) (b >= ANALYSER_BLOCKS - 2 ? peak : normal).rect(...l.blocks[col][b]);
+    for (let b = 0; b < n; b++) (!vol && b >= ANALYSER_BLOCKS - 2 ? peak : normal).rect(...l.blocks[col][b]);
   });
   ctx.fillStyle = vfdColor(power);
+  ctx.fill(bars);
+  ctx.fillStyle = vfdColor(vol || power);
   ctx.fill(normal);
   ctx.fillStyle = css(mix(B.vfdGhost, B.amber, power));
   ctx.fill(peak);
@@ -426,6 +491,59 @@ function drawMeters(ctx, w, h, l, { power = 0, signal = 0, levels = [] }) {
 function drawGlass(ctx, w, h, glass) {
   const reflection = linear(ctx, glass.x, glass.y, glass.x + glass.w / 2, glass.y + glass.h, [css(WHITE, 0.08), TRANSPARENT]);
   roundRect(ctx, glass.x, glass.y, glass.w, glass.h, 8, reflection);
+}
+
+/** The fader's slot, tick scale and MIN/MAX labels. */
+function prepareFader(ctx, w, h) {
+  const capH = 26;
+  const pad = FADER_CAP_W / 2;
+  const slotY = 14;
+  const slotH = 7;
+  const tickTop = slotY + capH / 2 + 2;
+  const ticks = new Path2D();
+  for (let i = 0; i <= VOLUME_MAX; i++) {
+    const x = pad + ((w - pad * 2) * i) / VOLUME_MAX;
+    const major = i === 0 || i === VOLUME_MAX || i === Math.floor(VOLUME_MAX / 2);
+    ticks.moveTo(x, tickTop);
+    ticks.lineTo(x, tickTop + (major ? 6 : 3));
+  }
+  return {
+    capH,
+    pad,
+    slotY,
+    slotH,
+    ticks,
+    labelTop: tickTop + 7,
+    label: font(8, { weight: 700, italic: true, spacing: 1 }),
+    chrome: linear(ctx, 0, slotY - capH / 2, 0, slotY + capH / 2, [css(WHITE), css(B.silver), css(B.silverDark)]),
+  };
+}
+
+/** Draws the fader with its chrome cap at `at` (0 to 1). */
+function drawFader(ctx, w, h, c, { at = 0 }) {
+  const { capH, pad, slotY, slotH } = c;
+  const ink = css(B.ink);
+  roundRect(ctx, 0, slotY - slotH / 2 + PX, w, slotH, slotH / 2, css(WHITE));
+  roundRect(ctx, 0, slotY - slotH / 2, w, slotH, slotH / 2, '#0D0D0D');
+  ctx.globalAlpha = 0.7;
+  strokePath(ctx, c.ticks, ink, 1);
+  ctx.globalAlpha = 1;
+  text(ctx, 'MIN', 0, c.labelTop, c.label, ink);
+  text(ctx, 'MAX', w, c.labelTop, c.label, ink, 'right');
+
+  const x = pad + (w - pad * 2) * at;
+  const left = x - FADER_CAP_W / 2;
+  const top = slotY - capH / 2;
+  roundRect(ctx, left, top + 3, FADER_CAP_W, capH, 4, css(BLACK, 0.35));
+  roundRect(ctx, left, top, FADER_CAP_W, capH, 4, c.chrome);
+  strokeRoundRect(ctx, left, top, FADER_CAP_W, capH, 4, css(B.chromeDark), PX);
+  // Grip ridges either side of the neon pointer line.
+  for (const k of [-3, -2, 2, 3]) {
+    const rx = x + k * 3;
+    line(ctx, rx, top + 5, rx, top + capH - 5, css(BLACK, 0.3), 1);
+    line(ctx, rx + 1, top + 5, rx + 1, top + capH - 5, css(WHITE, 0.7), 1);
+  }
+  line(ctx, x, top + 3, x, top + capH - 3, css(B.neon), 2);
 }
 
 /** Perforated black panel behind the twin woofers. */

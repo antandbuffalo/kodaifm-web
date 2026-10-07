@@ -4,6 +4,8 @@ import { RadioPlayer } from './player.js';
 import { AnalyserFeed, AudioSpectrum, SimulatedFeed } from './spectrum.js';
 import { isOn } from './station.js';
 import { createVintage } from './vintage.js';
+import { load, save } from './storage.js';
+import { Volume } from './volume.js';
 
 // Saved by name, so reordering or adding styles keeps each listener's choice.
 const DESIGN_KEY = 'design_name';
@@ -12,6 +14,9 @@ const SHARE_URL = 'https://antandbuffalo.github.io/kodaifm-web/';
 const SHARE_TEXT = 'Listen to AIR Kodaikanal 100.5 FM live on Kodai FM';
 
 const radio = new RadioPlayer(document.querySelector('audio'));
+// One for the whole screen: both designs' volume controls drive it.
+const volume = new Volume(radio);
+document.documentElement.classList.toggle('fixed-volume', !volume.adjustable);
 const spectrum = new AudioSpectrum();
 let feed = null;
 
@@ -30,7 +35,7 @@ function wake() {
 }
 
 const creators = { boombox: createBoombox, vintage: createVintage };
-const designs = pages.map((page) => creators[page.dataset.design](page, { radio, wake }));
+const designs = pages.map((page) => creators[page.dataset.design](page, { radio, volume, wake }));
 
 function frame(now) {
   raf = 0;
@@ -53,20 +58,6 @@ function onPhase() {
   wake();
 }
 radio.addEventListener('phase', onPhase);
-
-// Private mode or blocked storage: settings just aren't remembered.
-function load(key) {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-function save(key, value) {
-  try {
-    localStorage.setItem(key, value);
-  } catch {}
-}
 
 // Swipeable radio styles; the last one used is remembered.
 let current = Math.max(0, pages.findIndex((p) => p.dataset.design === load(DESIGN_KEY)));
@@ -97,6 +88,11 @@ document.addEventListener('keydown', (e) => {
   if (about.open) return;
   if (e.key === 'ArrowRight') showPage(current + 1);
   if (e.key === 'ArrowLeft') showPage(current - 1);
+  // Up and down work the volume, like a phone's side buttons.
+  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    volume.step(e.key === 'ArrowUp' ? 1 : -1);
+  }
   // Space switches the radio on and off, except on a focused button, which handles it itself.
   if (e.key === ' ' && !e.target.closest?.('button')) {
     e.preventDefault();

@@ -3,8 +3,9 @@ import {
   BLACK, PX, SERIF, TRANSPARENT, WHITE, circle, clamp, css, font, layer, line, lineHeight, linear, mix,
   rad, radial, rgb, roundRect, seeded, strokeCircle, strokePath, strokeRoundRect, sweep, text,
 } from './draw.js';
-import { pressable } from './controls.js';
+import { pressable, volumeSlider } from './controls.js';
 import { STATION_FREQ_MHZ, isOn } from './station.js';
+import { VOLUME_MAX } from './volume.js';
 
 const FREQ_MIN = 88;
 const FREQ_MAX = 108;
@@ -30,7 +31,12 @@ const P = {
   bakelite: rgb(0x22140b),
   eyeGreen: rgb(0x6bff9a),
   eyeDark: rgb(0x0a1f12),
+  unlitLamp: rgb(0x3d2c18),
 };
+
+const VOLUME_THUMB_W = 34;
+/** How far in from each end of the volume bar the lamps start, leaving room for the speaker icons. */
+const VOLUME_BAR_PAD = 36;
 
 const STATUS = {
   off: 'Turn the knob to listen',
@@ -43,8 +49,8 @@ const STATUS = {
 const brassBezel = (ctx, w, h) =>
   linear(ctx, 0, 0, w, h, [css(P.brassLight), css(P.brassDark), css(P.brass), css(P.brassDark)]);
 
-/** A 1960s walnut valve radio. The bakelite knob is the play/pause control. */
-export function createVintage(page, { radio, wake }) {
+/** A 1960s walnut valve radio. The bakelite knob is play/pause; the brass slider is the volume. */
+export function createVintage(page, { radio, volume, wake }) {
   const $ = (sel) => page.querySelector(sel);
   // Valves take a moment to warm up, so the dial light fades in slowly.
   const glow = new Tween(0, 1400, LinearOutSlowIn);
@@ -53,12 +59,26 @@ export function createVintage(page, { radio, wake }) {
   const drift = new Wave(1100, 'reverse');
   const rotation = new Spring(-50, { stiffness: 400, dampingRatio: 0.6, threshold: 0.01 });
   const press = new Spring(1);
+  const thumbAt = new Tween(volume.fraction, 120);
 
   layer($('.wood'), drawWood, { prepare: prepareWood });
   layer($('.grille'), drawGrille, { prepare: prepareGrille });
   const dial = layer($('.dial'), drawDial, { prepare: prepareDial });
   const eye = layer($('.eye canvas'), drawEye, { prepare: prepareEye, bleed: 8 });
   const knob = layer($('.knob canvas'), drawKnob, { prepare: prepareKnob });
+  const bar = layer($('.volume-bar canvas'), drawVolumeBar, { prepare: prepareVolumeBar, bleed: 4 });
+
+  // The label and the gaps around the bar take touches too, so a slightly missed thumb moves the
+  // volume rather than swiping to the other radio.
+  volumeSlider($('.volume'), $('.volume-bar'), VOLUME_BAR_PAD, volume);
+  const levelLabel = $('.volume-level');
+  const showLevel = () => (levelLabel.textContent = String(volume.level));
+  volume.addEventListener('input', () => {
+    thumbAt.set(volume.fraction, performance.now());
+    showLevel();
+    wake();
+  });
+  showLevel();
 
   const knobButton = $('.knob');
   pressable(
@@ -86,7 +106,7 @@ export function createVintage(page, { radio, wake }) {
 
     /** Advances animations; redraws when `visible`. True while something is still moving. */
     frame(now, dt, spectrum, visible) {
-      const moving = [glow.step(now), eyeShadow.step(now), rotation.step(dt), press.step(dt)].some(Boolean);
+      const moving = [glow.step(now), eyeShadow.step(now), rotation.step(dt), press.step(dt), thumbAt.step(now)].some(Boolean);
       if (!visible) return moving;
       const d = drift.at(now);
       dial.update({ glow: glow.value * (1 - 0.25 * Math.abs(flicker.at(now))), drift: d });
@@ -96,6 +116,7 @@ export function createVintage(page, { radio, wake }) {
       const sweep = Math.round(clamp(eyeShadow.value + d * 25 + loudness, 4, 360) * 2) / 2;
       eye.update({ glow: glow.value, sweep });
       knob.update({ rotation: rotation.value, scale: press.value });
+      bar.update({ at: thumbAt.value, lit: volume.level });
       return moving;
     },
   };
@@ -357,3 +378,82 @@ function drawKnob(ctx, w, h, c, { rotation = -50, scale = 1 }) {
   circle(ctx, c.hx, c.hy, r * 0.32, c.highlight);
 }
 
+/** A speaker glyph `size` wide, vertically centred on `y` with its left edge at `x`; `waves` are to be stroked. */
+function speakerIcon(x, y, size) {
+  const u = size / 24;
+  const at = (px, py) => [x + px * u, y + (py - 12) * u];
+  const body = new Path2D();
+  body.moveTo(...at(3, 9));
+  for (const [px, py] of [[7, 9], [12, 4], [12, 20], [7, 15], [3, 15]]) body.lineTo(...at(px, py));
+  body.closePath();
+  const waves = new Path2D();
+  for (const [cx, r] of [[13.5, 4.5], [14.5, 7.5]]) {
+    const [ax, ay] = at(cx, 12);
+    waves.moveTo(ax + r * u * Math.cos(rad(-60)), ay + r * u * Math.sin(rad(-60)));
+    waves.arc(ax, ay, r * u, rad(-60), rad(60));
+  }
+  return { body, waves };
+}
+
+function prepareVolumeBar(ctx, w, h) {
+  const frame = 5;
+  const well = { x: frame, y: frame, w: w - frame * 2, h: h - frame * 2 };
+  const lampH = 14;
+  const lampTop = h / 2 - lampH / 2;
+  const thumbH = h - frame * 2 - 6;
+  const icon = 16;
+  const loudX = well.x + well.w - 8 - icon;
+  return {
+    well,
+    lampH,
+    lampTop,
+    thumbH,
+    quiet: speakerIcon(well.x + 8, h / 2, icon).body,
+    loud: speakerIcon(loudX, h / 2, icon),
+    bezel: brassBezel(ctx, w, h),
+    wellFill: linear(ctx, 0, well.y, 0, well.y + well.h, ['#120A05', '#2A1A0E', '#1A0F07']),
+    wellShade: linear(ctx, 0, well.y, 0, well.y + 8, [css(BLACK, 0.6), TRANSPARENT]),
+    lampLit: linear(ctx, 0, lampTop, 0, lampTop + lampH, [css(P.dialLit), css(P.glow)]),
+    thumbFill: radial(ctx, VOLUME_THUMB_W * 0.35, thumbH * 0.25, thumbH * 0.8, [css(P.bakeliteLight), css(P.bakelite)]),
+  };
+}
+
+/**
+ * Brass-framed slot for the volume: a row of amber lamps lit up to the level (`lit`), and a bakelite
+ * slider at `at` (0 to 1).
+ */
+function drawVolumeBar(ctx, w, h, c, { at = 0, lit = 0 }) {
+  const { well, lampH, lampTop, thumbH } = c;
+  roundRect(ctx, 0, 3, w, h, 12, css(BLACK, 0.45));
+  roundRect(ctx, 0, 0, w, h, 12, c.bezel);
+  roundRect(ctx, well.x, well.y, well.w, well.h, 8, c.wellFill);
+  roundRect(ctx, well.x, well.y, well.w, well.h, 8, c.wellShade);
+  const brass = css(P.brass);
+  ctx.fillStyle = brass;
+  ctx.fill(c.quiet);
+  ctx.fill(c.loud.body);
+  ctx.lineCap = 'round';
+  strokePath(ctx, c.loud.waves, brass, 1.5);
+
+  const pad = VOLUME_BAR_PAD;
+  const gap = 3;
+  const lampW = (w - pad * 2 - gap * (VOLUME_MAX - 1)) / VOLUME_MAX;
+  for (let i = 0; i < VOLUME_MAX; i++) {
+    const x = pad + i * (lampW + gap);
+    if (i < lit) {
+      roundRect(ctx, x - 2, lampTop - 2, lampW + 4, lampH + 4, 4, css(P.glow, 0.3));
+      roundRect(ctx, x, lampTop, lampW, lampH, 2, c.lampLit);
+    } else {
+      roundRect(ctx, x, lampTop, lampW, lampH, 2, css(P.unlitLamp));
+    }
+  }
+
+  const x = pad + (w - pad * 2) * at;
+  ctx.translate(x - VOLUME_THUMB_W / 2, h / 2 - thumbH / 2);
+  roundRect(ctx, 0, 3, VOLUME_THUMB_W, thumbH, 8, css(BLACK, 0.6));
+  roundRect(ctx, 0, 0, VOLUME_THUMB_W, thumbH, 8, c.thumbFill);
+  strokeRoundRect(ctx, 0, 0, VOLUME_THUMB_W, thumbH, 8, css(P.brassDark), 2);
+  const mid = VOLUME_THUMB_W / 2;
+  for (let k = -2; k <= 2; k++) line(ctx, mid + k * 4, thumbH * 0.2, mid + k * 4, thumbH * 0.8, css(BLACK, 0.4), 1);
+  line(ctx, mid, 0, mid, thumbH, css(P.brassLight, 0.85), 2);
+}
