@@ -82,10 +82,6 @@
                 <canvas class="vfd-glass fill" aria-hidden="true"></canvas>
                 <div class="vfd-status" aria-live="polite"></div>
               </div>
-              <div class="fader" role="slider" tabindex="0" aria-label="Volume">
-                <span class="fader-label" aria-hidden="true">Volume</span>
-                <div class="fader-slot"><canvas class="fill" aria-hidden="true"></canvas></div>
-              </div>
             </div>
             <div class="speakers" aria-hidden="true">
               <canvas class="mesh fill"></canvas>
@@ -111,15 +107,9 @@
             <canvas class="dial" aria-hidden="true"></canvas>
             <canvas class="grille" aria-hidden="true"></canvas>
             <div class="controls">
-              <div class="volume" role="slider" tabindex="0" aria-label="Volume">
-                <div class="volume-head" aria-hidden="true"><span>Volume</span><span class="volume-level"></span></div>
-                <div class="volume-bar"><canvas aria-hidden="true"></canvas></div>
-              </div>
-              <div class="power">
-                <span class="knob-label off" aria-hidden="true">OFF</span>
-                <button class="knob" type="button" aria-label="Play"><canvas></canvas></button>
-                <span class="knob-label on" aria-hidden="true">ON</span>
-              </div>
+              <span class="knob-label off" aria-hidden="true">OFF</span>
+              <button class="knob" type="button" aria-label="Play"><canvas></canvas></button>
+              <span class="knob-label on" aria-hidden="true">ON</span>
             </div>
             <div class="plaque" aria-live="polite"></div>
           </div>
@@ -130,7 +120,6 @@
     </main>
 
     <footer class="chrome">
-      <p class="volume-tip" role="status"></p>
       <nav class="dots" aria-label="Radio style">
         <button class="dot" type="button" aria-label="1980s boombox"></button>
         <button class="dot" type="button" aria-label="1960s valve radio"></button>
