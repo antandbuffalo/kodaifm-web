@@ -1,0 +1,8 @@
+{
+  "stations": [
+    {
+      "id": "kodai",
+      "url": "https://air.pc.cdn.bitgravity.com/air/live/pbaudio051/playlist.m3u8"
+    }
+  ]
+}
