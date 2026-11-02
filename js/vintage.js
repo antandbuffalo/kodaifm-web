@@ -30,6 +30,8 @@ const P = {
   bakelite: rgb(0x22140b),
   eyeGreen: rgb(0x6bff9a),
   eyeDark: rgb(0x0a1f12),
+  peakLamp: rgb(0xff7a3c),
+  lampShadow: BLACK,
 };
 
 const STATUS = {
@@ -55,7 +57,7 @@ export function createVintage(page, { radio, wake }) {
   const press = new Spring(1);
 
   layer($('.wood'), drawWood, { prepare: prepareWood });
-  layer($('.grille'), drawGrille, { prepare: prepareGrille });
+  const grille = layer($('.grille'), drawGrille, { prepare: prepareGrille });
   const dial = layer($('.dial'), drawDial, { prepare: prepareDial });
   const eye = layer($('.eye canvas'), drawEye, { prepare: prepareEye, bleed: 8 });
   const knob = layer($('.knob canvas'), drawKnob, { prepare: prepareKnob });
@@ -90,6 +92,7 @@ export function createVintage(page, { radio, wake }) {
       if (!visible) return moving;
       const d = drift.at(now);
       dial.update({ glow: glow.value * (1 - 0.25 * Math.abs(flicker.at(now))), drift: d });
+      grille.update({ levels: spectrum.bands, glow: glow.value });
       // Louder audio narrows the wedge, like a real tuning eye on a strong signal.
       const loudness = radio.phase === 'live' ? (0.5 - spectrum.level) * 24 : 0;
       // Half-degree steps: finer movement is invisible at this size, so it needn't redraw.
@@ -257,7 +260,6 @@ function prepareGrille(ctx, w, h, scale) {
   clip.roundRect(cloth.x, cloth.y, cloth.w, cloth.h, 11);
   const warp = new Path2D();
   const weft = new Path2D();
-  const threads = new Path2D();
   for (let x = cloth.x; x < right; x += 3) {
     warp.moveTo(x, cloth.y);
     warp.lineTo(x, bottom);
@@ -265,10 +267,6 @@ function prepareGrille(ctx, w, h, scale) {
   for (let y = cloth.y; y < bottom; y += 3) {
     weft.moveTo(cloth.x, y);
     weft.lineTo(right, y);
-  }
-  for (let x = cloth.x + 9; x < right; x += 18) {
-    threads.moveTo(x, cloth.y);
-    threads.lineTo(x, bottom);
   }
   const cx = cloth.x + cloth.w / 2;
   const cy = cloth.y + cloth.h / 2;
@@ -278,14 +276,44 @@ function prepareGrille(ctx, w, h, scale) {
     clip,
     warp,
     weft,
-    threads,
     frame: brassBezel(ctx, w, h),
     cone: radial(ctx, cx, cy, Math.min(cloth.w, cloth.h) * 0.48, [css(BLACK, 0.28), css(BLACK, 0.1), TRANSPARENT]),
     vignette: radial(ctx, cx, cy, Math.max(cloth.w, cloth.h) * 0.7, [TRANSPARENT, css(BLACK, 0.4)]),
+    lamps: createLamps(ctx, cloth),
   };
 }
 
-function drawGrille(ctx, w, h, c) {
+function createLamps(ctx, cloth) {
+  const cols = 14;
+  const colPitch = (cloth.w * 0.86) / cols;
+  const usableHeight = cloth.h * 0.8;
+  const rows = Math.max(3, Math.min(7, Math.floor(usableHeight / (colPitch * 0.75))));
+  const rowPitch = Math.min(colPitch, usableHeight / rows);
+  const bankLeft = cloth.x + cloth.w / 2 - (colPitch * cols) / 2;
+  const bankBottom = cloth.y + cloth.h / 2 + (rowPitch * rows) / 2;
+  const r = rowPitch * 0.36;
+  return {
+    cols,
+    rows,
+    lamps: Array.from({ length: cols }, (_, column) =>
+      Array.from({ length: rows }, (_, row) => {
+        const centre = {
+          x: bankLeft + colPitch * (column + 0.5),
+          y: bankBottom - rowPitch * (row + 0.5),
+        };
+        const tint = row >= rows - 2 ? P.peakLamp : P.glow;
+        return {
+          centre,
+          radius: r,
+          halo: radial(ctx, centre.x, centre.y, r * 2.6, [css(tint, 0.5), css(tint, 0.15), TRANSPARENT]),
+          core: radial(ctx, centre.x, centre.y, r * 1.15, [css(P.dialLit), css(tint), css(tint, 0)]),
+        };
+      }),
+    ),
+  };
+}
+
+function drawGrille(ctx, w, h, c, { levels, glow = 0 } = {}) {
   const { cloth } = c;
   if (cloth.w <= 0 || cloth.h <= 0) return;
   roundRect(ctx, 0, 0, w, h, 16, c.frame);
@@ -293,13 +321,28 @@ function drawGrille(ctx, w, h, c) {
   ctx.clip(c.clip);
   ctx.fillStyle = css(P.cloth);
   ctx.fillRect(cloth.x, cloth.y, cloth.w, cloth.h);
-  strokePath(ctx, c.warp, css(P.clothDark, 0.45), PX);
-  strokePath(ctx, c.weft, css(P.clothDark, 0.3), PX);
-  strokePath(ctx, c.threads, css(P.brass, 0.55), 1.5);
   ctx.fillStyle = c.cone;
   ctx.fillRect(cloth.x, cloth.y, cloth.w, cloth.h);
   ctx.fillStyle = c.vignette;
   ctx.fillRect(cloth.x, cloth.y, cloth.w, cloth.h);
+  if (levels) {
+    const power = glow;
+    for (let column = 0; column < c.lamps.cols; column++) {
+      const level = (levels[column] ?? 0) * c.lamps.rows;
+      c.lamps.lamps[column].forEach((lamp, row) => {
+        const lit = Math.max(0, Math.min(1, level - row)) * power;
+        circle(ctx, lamp.centre.x, lamp.centre.y, lamp.radius, css(P.lampShadow, 0.14));
+        if (lit > 0.01) {
+          ctx.globalAlpha = lit;
+          circle(ctx, lamp.centre.x, lamp.centre.y, lamp.radius * 2.6, lamp.halo);
+          circle(ctx, lamp.centre.x, lamp.centre.y, lamp.radius * 1.15, lamp.core);
+          ctx.globalAlpha = 1;
+        }
+      });
+    }
+  }
+  strokePath(ctx, c.warp, css(P.clothDark, 0.45), PX);
+  strokePath(ctx, c.weft, css(P.clothDark, 0.3), PX);
   ctx.restore();
 
   const { badge } = c;
